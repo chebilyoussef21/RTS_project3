@@ -276,6 +276,8 @@ void vSchedulerPeriodicTaskDelete( TaskHandle_t xTaskHandle )
 		if( xIndex != -1 )
 		{
 			prvDeleteTCBFromArray( xIndex );
+			Serial.print("Deleted task at Index: ");
+			Serial.print( xIndex );
 		}
 	#endif
 	vTaskDelete( xTaskHandle ); 
@@ -407,6 +409,9 @@ static void prvSetFixedPriorities( void )
 		/* Delete the pxTask and recreate it. */
 		/* pxTaskHandle stores a pointer to the handle, so dereference it here. */
 		vTaskDelete( *pxTCB->pxTaskHandle /* Line 328 your implementation goes here */ );
+		Serial.print("Deadline of task ");
+		Serial.print(xTCBArray->pcName);
+		Serial.println(" missed, recreating it and waiting for next release time");
 		pxTCB->xExecTime = 0;
 		prvPeriodicTaskRecreate( pxTCB );
 		
