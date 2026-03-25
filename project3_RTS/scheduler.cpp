@@ -613,6 +613,10 @@ void vSchedulerStart( void )
 		prvSetFixedPriorities();	
 	#endif /* schedSCHEDULING_POLICY */
 
+	#if( schedSCHEDULING_POLICY == schedSCHEDULING_POLICY_DMS)
+		prvSetFixedPriorities();
+	#endif /* schedSCHEDULING_POLICY*/
+
 	#if( schedUSE_SCHEDULER_TASK == 1 )
 		prvCreateSchedulerTask();
 	#endif /* schedUSE_SCHEDULER_TASK */
