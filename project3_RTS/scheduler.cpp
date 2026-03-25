@@ -299,7 +299,9 @@ static void prvCreateAllTasks( void )
 			if( pdPASS == xReturnValue )
 			{
 				Serial.print("Created periodic task: ");
-				Serial.println( pxTCB->pcName );
+				Serial.print( pxTCB->pcName );
+				Serial.print(" with priority: ");
+				Serial.println( pxTCB->uxPriority );
 			}
 			else
 			{
@@ -312,7 +314,7 @@ static void prvCreateAllTasks( void )
 }
 
 #if( schedSCHEDULING_POLICY == schedSCHEDULING_POLICY_RMS || schedSCHEDULING_POLICY == schedSCHEDULING_POLICY_DMS )
-	/* Initiazes fixed priorities of all periodic tasks with respect to RMS policy. */
+	/* Initializes fixed priorities of all periodic tasks with respect to RMS policy. */
 static void prvSetFixedPriorities( void )
 {
 	BaseType_t xIter, xIndex;
@@ -357,7 +359,7 @@ static void prvSetFixedPriorities( void )
 		
 		/* Line 299 your implementation goes here */
 		pxTCB = pxShortestTaskPointer;
-		pxTCB->uxPriority = xHighestPriority - 1;
+		pxTCB->uxPriority = xHighestPriority;
 		xHighestPriority --;
 		pxTCB->xPriorityIsSet = pdTRUE;
 		xPreviousShortest = xShortest;
