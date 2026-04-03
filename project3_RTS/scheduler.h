@@ -54,7 +54,7 @@ extern "C" {
 	/* The period of the scheduler task in software ticks. Keep this at least one
 	 * tick wide because small pdMS_TO_TICKS() values can round down to zero on
 	 * Arduino_FreeRTOS AVR ports. */
-	#define schedSCHEDULER_TASK_PERIOD 1	
+	#define schedSCHEDULER_TASK_PERIOD pdMS_TO_TICKS( 100 )		
 #endif /* schedUSE_SCHEDULER_TASK */
 
 /* This function must be called before any other function call from scheduler.h. */
