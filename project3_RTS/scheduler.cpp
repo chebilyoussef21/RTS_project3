@@ -43,8 +43,6 @@ typedef struct xExtended_TCB
 	
 } SchedTCB_t;
 
-
-
 #if( schedUSE_TCB_ARRAY == 1 )
 	static BaseType_t prvGetTCBIndexFromHandle( TaskHandle_t xTaskHandle );
 	static void prvInitTCBArray( void );
@@ -83,8 +81,6 @@ static void prvCreateAllTasks( void );
 	
 #endif /* schedUSE_SCHEDULER_TASK */
 
-
-
 #if( schedUSE_TCB_ARRAY == 1 )
 	/* Array for extended TCBs. */
 	static SchedTCB_t xTCBArray[ schedMAX_NUMBER_OF_PERIODIC_TASKS ] = { 0 };
@@ -96,7 +92,6 @@ static void prvCreateAllTasks( void );
 	static TickType_t xSchedulerWakeCounter = 0; /* useful. why? */
 	static TaskHandle_t xSchedulerHandle = NULL; /* useful. why? */
 #endif /* schedUSE_SCHEDULER_TASK */
-
 
 #if( schedUSE_TCB_ARRAY == 1 )
 	/* Returns index position in xTCBArray of TCB with same task handle as parameter. */
@@ -157,7 +152,6 @@ static void prvCreateAllTasks( void );
 	
 #endif /* schedUSE_TCB_ARRAY */
 
-
 /* The whole function code that is executed by every periodic task.
  * This function wraps the task code specified by the user. */
 static void prvPeriodicTaskCode( void *pvParameters ){
@@ -175,23 +169,28 @@ static void prvPeriodicTaskCode( void *pvParameters ){
 
 	#if( schedUSE_TIMING_ERROR_DETECTION_DEADLINE == 1 )
 		/* Line 171 your implementation goes here */
-		pxThisTask->xAbsoluteDeadline = xSystemStartTime + pxThisTask->xReleaseTime + pxThisTask->xRelativeDeadline;
+		pxThisTask->xAbsoluteDeadline = xSystemStartTime + pxThisTask->xLastWakeTime + pxThisTask->xRelativeDeadline;
 		pxThisTask->xExecutedOnce = pdFALSE;
 	#endif /* schedUSE_TIMING_ERROR_DETECTION_DEADLINE */
 
-	if( 0 == pxThisTask->xReleaseTime )
+	if( 0 == pxThisTask->xReleaseTime && (BaseType_t)( pxThisTask->xLastWakeTime - xSystemStartTime ) <= 0 )
 	{
-		pxThisTask->xLastWakeTime = xSystemStartTime;
+        pxThisTask->xLastWakeTime = xSystemStartTime;
+    }
+
+	/* If recreated after a deadline miss, xLastWakeTime is a future
+	 * tick so we block here until that scheduled release rather than running immediately. */
+	TickType_t xNow = xTaskGetTickCount();
+	if( ( int16_t )( pxThisTask->xLastWakeTime - xNow ) > 0 ){
+		vTaskDelay( pxThisTask->xLastWakeTime - xNow );
 	}
 
 	for( ; ; )
-	{	
+	{
 		#if( schedUSE_TIMING_ERROR_DETECTION_DEADLINE == 1 )
-			/* Each release starts a new job, so refresh its pending/completion state. */
-			pxThisTask->xWorkIsDone = pdFALSE;
 			pxThisTask->xAbsoluteDeadline = pxThisTask->xLastWakeTime + pxThisTask->xRelativeDeadline;
-			/* Mark the current job as active so the scheduler can detect first-job misses. */
 			pxThisTask->xExecutedOnce = pdTRUE;
+			pxThisTask->xWorkIsDone = pdFALSE;
 		#endif /* schedUSE_TIMING_ERROR_DETECTION_DEADLINE */
 
 		/* Log which task is running and at what tick. */
@@ -199,6 +198,7 @@ static void prvPeriodicTaskCode( void *pvParameters ){
 		Serial.print(pxThisTask->pcName);
 		Serial.print("' running at tick ");
 		Serial.println(xTaskGetTickCount());
+		
 
 		/* Execute the task function specified by the user. */
 		pxThisTask->pvTaskCode( pvParameters );
@@ -207,14 +207,16 @@ static void prvPeriodicTaskCode( void *pvParameters ){
 		pxThisTask->xExecTime = 0;
 		pxThisTask->xWorkIsDone = pdTRUE;
 
-		Serial.print("[DONE] Task '");
-		Serial.print(pxThisTask->pcName);
-		Serial.print("' finished at tick ");
-		Serial.println(xTaskGetTickCount());
+		// Serial.print("[DONE] Task '");
+		// Serial.print(pxThisTask->pcName);
+		// Serial.print("' finished at tick ");
+		// Serial.println(xTaskGetTickCount());
+		// Serial.println("--------------------------------------------------");
 
 		xTaskDelayUntil( &pxThisTask->xLastWakeTime, pxThisTask->xPeriod );
 	}
 }
+
 
 /* Creates a periodic task. */
 void vSchedulerPeriodicTaskCreate( TaskFunction_t pvTaskCode, const char *pcName, UBaseType_t uxStackDepth, void *pvParameters, UBaseType_t uxPriority,
@@ -340,7 +342,7 @@ static void prvSetFixedPriorities( void )
 	SchedTCB_t *pxShortestTaskPointer, *pxTCB;
 
 	#if( schedUSE_SCHEDULER_TASK == 1 )
-		BaseType_t xHighestPriority = schedSCHEDULER_PRIORITY; 
+		BaseType_t xHighestPriority = configMAX_PRIORITIES-1; 
 	#else
 		BaseType_t xHighestPriority = configMAX_PRIORITIES;
 	#endif /* schedUSE_SCHEDULER_TASK */
@@ -408,9 +410,9 @@ static void prvSetFixedPriorities( void )
 			pxTCB->xSuspended = pdFALSE;
 			pxTCB->xMaxExecTimeExceeded = pdFALSE;
 		#endif
-			Serial.print("[RECREATE] Task '");
-			Serial.print(pxTCB->pcName);
-			Serial.println("' successfully recreated.");
+			// Serial.print("[RECREATE] Task '");
+			// Serial.print(pxTCB->pcName);
+			// Serial.println("' successfully recreated.");
 		}
 		else
 		{
@@ -428,36 +430,33 @@ static void prvSetFixedPriorities( void )
 	{
 		/* Delete the pxTask and recreate it. */
 		/* pxTaskHandle stores a pointer to the handle, so dereference it here. */
-		Serial.print("[DEADLINE MISS] Deleting task '");
-		Serial.print(pxTCB->pcName);
-		Serial.print("' at tick ");
-		Serial.print(xTickCount);
-		Serial.print(" | absDeadline was ");
-		Serial.println(pxTCB->xAbsoluteDeadline);
+		// Serial.print("[DEADLINE MISS] Deleting task '");
+		// Serial.print(pxTCB->pcName);
+		// Serial.print("' at tick ");
+		// Serial.print(xTickCount);
+		// Serial.print(" | absDeadline was ");
+		// Serial.println(pxTCB->xAbsoluteDeadline);
 		vTaskDelete( *pxTCB->pxTaskHandle /* Line 328 your implementation goes here */ );
-		Serial.print("[DEADLINE MISS] Task '");
-		Serial.print(pxTCB->pcName);
-		Serial.println("' deleted, now recreating...");
-		prvPeriodicTaskRecreate( pxTCB );
-		
+
 		/* Need to reset next WakeTime for correct release. */
 		/* Line 333 your implementation goes here */
 		//Advances wake timing to the next valid period boundary.
-		TickType_t next_tick_count = xTickCount + 1;
-		//we use a while loop because a deadline miss can cause multiple periods to be skipped, and we want to make sure that we are on the next period boundary (in future).
-		while( ( BaseType_t ) ( next_tick_count - ( pxTCB->xLastWakeTime + pxTCB->xPeriod ) ) > 0 )
+		// Must happen BEFORE recreate so the new task reads correct xLastWakeTime.
+		while( ( int16_t )( xTickCount - ( pxTCB->xLastWakeTime + pxTCB->xRelativeDeadline ) ) >= 0 )
 		{
 			pxTCB->xLastWakeTime += pxTCB->xPeriod;
 		}
 		//Recomputes xAbsoluteDeadline from new value of xLastWakeTime + xRelativeDeadline.
 		pxTCB->xAbsoluteDeadline = pxTCB->xLastWakeTime + pxTCB->xRelativeDeadline;
 
-		Serial.print("[DEADLINE MISS] Task '");
-		Serial.print(pxTCB->pcName);
-		Serial.print("' recreated. Next wake=");
-		Serial.print(pxTCB->xLastWakeTime);
-		Serial.print(" newDeadline=");
-		Serial.println(pxTCB->xAbsoluteDeadline);
+		prvPeriodicTaskRecreate( pxTCB );
+		
+		// Serial.print("[DEADLINE MISS] Task '");
+		// Serial.print(pxTCB->pcName);
+		// Serial.print("' deleted & recreated. Next wake=");
+		// Serial.print(pxTCB->xLastWakeTime);
+		// Serial.print(" newDeadline=");
+		// Serial.println(pxTCB->xAbsoluteDeadline);
 	}
 
 	/* Checks whether given task has missed deadline or not. */
@@ -466,14 +465,14 @@ static void prvSetFixedPriorities( void )
 		/* check whether deadline is missed. */     		
 		/* Line 341 your implementation goes here */
 		// if the task was executed once, if the work hasn't been done yet and if the tickcount is greater than or equal to the absolute deadline of the task
-		if( pdTRUE == pxTCB->xExecutedOnce && pdFALSE == pxTCB->xWorkIsDone && ( BaseType_t ) ( xTickCount - pxTCB->xAbsoluteDeadline ) >= 0)
+		if( pdTRUE == pxTCB->xExecutedOnce && pdFALSE == pxTCB->xWorkIsDone && ( int16_t )( xTickCount - pxTCB->xAbsoluteDeadline ) >= 0)
 		{
-			Serial.print("[CHECK] MISSED -> task '");
-			Serial.print(pxTCB->pcName);
-			Serial.print("' tick=");
-			Serial.print(xTickCount);
-			Serial.print(" deadline=");
-			Serial.println(pxTCB->xAbsoluteDeadline);
+			// Serial.print("[CHECK] MISSED -> task '");
+			// Serial.print(pxTCB->pcName);
+			// Serial.print("' tick=");
+			// Serial.print(xTickCount);
+			// Serial.print(" deadline=");
+			// Serial.println(pxTCB->xAbsoluteDeadline);
 			prvDeadlineMissedHook( pxTCB, xTickCount );
 		}
 			
@@ -488,7 +487,11 @@ static void prvSetFixedPriorities( void )
 	 * the scheduler task occur to block the periodic task. */
 	static void prvExecTimeExceedHook( TickType_t xTickCount, SchedTCB_t *pxCurrentTask )
 	{
+		// Serial.print("[EXEC TIME EXCEEDED] Task '");
+		// Serial.print(pxCurrentTask->pcName);
+
         pxCurrentTask->xMaxExecTimeExceeded = pdTRUE;
+
         /* Is not suspended yet, but will be suspended by the scheduler later. */
         pxCurrentTask->xSuspended = pdTRUE;
         pxCurrentTask->xAbsoluteUnblockTime = pxCurrentTask->xLastWakeTime + pxCurrentTask->xPeriod;
@@ -527,11 +530,7 @@ static void prvSetFixedPriorities( void )
 
 		#if( schedUSE_TIMING_ERROR_DETECTION_EXECUTION_TIME == 1 )
         if( pdTRUE == pxTCB->xMaxExecTimeExceeded )
-        {
-			Serial.print("Periodic task ");
-    		Serial.print(pxTCB->pcName);
-    		Serial.println(" exceeded WCET and is being suspended until next period.");
-			
+        {			
             pxTCB->xMaxExecTimeExceeded = pdFALSE;
             vTaskSuspend( *pxTCB->pxTaskHandle );
         }
@@ -552,9 +551,7 @@ static void prvSetFixedPriorities( void )
 	/* Function code for the scheduler task. */
 	static void prvSchedulerFunction( void *pvParameters )
 	{
-		for( ; ; )
-		{
-
+		for( ; ; ){
 			#if( schedUSE_TIMING_ERROR_DETECTION_DEADLINE == 1 || schedUSE_TIMING_ERROR_DETECTION_EXECUTION_TIME == 1 )
 				TickType_t xTickCount = xTaskGetTickCount();
 				SchedTCB_t *pxTCB;
@@ -566,7 +563,30 @@ static void prvSetFixedPriorities( void )
 				{
 					pxTCB = &xTCBArray[ xIndex ];
 					prvSchedulerCheckTimingError( xTickCount, pxTCB );
+				
+					// Serial.print("[SCH] tick=");
+					// Serial.print(xTickCount);
+					// Serial.print(" task=");
+					// Serial.print(pxTCB->pcName);
+					// Serial.print(" inUse=");
+					// Serial.print(pxTCB->xInUse);
+					// Serial.print(" handle=");
+					// Serial.print((uintptr_t)(*pxTCB->pxTaskHandle), HEX);
+					// Serial.print(" done=");
+					// Serial.print(pxTCB->xWorkIsDone);
+					// Serial.print(" execOnce=");
+					// Serial.print(pxTCB->xExecutedOnce);
+					// Serial.print(" suspended=");
+					// Serial.print(pxTCB->xSuspended);
+					// Serial.print(" exec=");
+					// Serial.print(pxTCB->xExecTime);
+					// Serial.print(" deadline=");
+					// Serial.print(pxTCB->xAbsoluteDeadline);
+					// Serial.print(" lastWake=");
+					// Serial.println(pxTCB->xLastWakeTime);
 				}
+
+				
 			#endif /* schedUSE_TIMING_ERROR_DETECTION_DEADLINE || schedUSE_TIMING_ERROR_DETECTION_EXECUTION_TIME */
 		
             /* Wait for the tick hook to signal that timing checks are due.
@@ -605,8 +625,6 @@ static void prvSetFixedPriorities( void )
 	// Enable INCLUDE_xTaskGetCurrentTaskHandle
 	void vApplicationTickHook( void )
 	{            
-        Serial.print("[TICK]");
-
 		SchedTCB_t *pxCurrentTask;		
 		TaskHandle_t xCurrentTaskHandle = xTaskGetCurrentTaskHandle();		
         UBaseType_t flag = 0;

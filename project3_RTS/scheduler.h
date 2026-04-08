@@ -23,7 +23,7 @@ extern "C" {
 
 /* Configure scheduling policy by setting this define to the appropriate one. */
 // #define schedSCHEDULING_POLICY schedSCHEDULING_POLICY_DMS 
-#define schedSCHEDULING_POLICY schedSCHEDULING_POLICY_RMS
+#define schedSCHEDULING_POLICY schedSCHEDULING_POLICY_DMS
 
 /* Maximum number of periodic tasks that can be created. (Scheduler task is
  * not included) */
@@ -50,7 +50,7 @@ extern "C" {
 	/* Priority of the scheduler task. */
 	#define schedSCHEDULER_PRIORITY ( configMAX_PRIORITIES - 1 )
 	/* Stack size of the scheduler task. */
-	#define schedSCHEDULER_TASK_STACK_SIZE 200 
+	#define schedSCHEDULER_TASK_STACK_SIZE ( 200 )
 	/* The period of the scheduler task in software ticks. Keep this at least one
 	 * tick wide because small pdMS_TO_TICKS() values can round down to zero on
 	 * Arduino_FreeRTOS AVR ports. */
