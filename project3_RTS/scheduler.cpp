@@ -601,9 +601,9 @@ static void prvSetFixedPriorities( void )
              * tick hook is not wired up by the port). When the hook does fire,
              * vTaskNotifyGiveFromISR unblocks this immediately as intended. */
 
-			// ulTaskNotifyTake( pdTRUE, schedSCHEDULER_TASK_PERIOD );
+			 ulTaskNotifyTake( pdTRUE, schedSCHEDULER_TASK_PERIOD );
 
-            ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
+            //ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
         }
 	}
 

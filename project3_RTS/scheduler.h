@@ -23,7 +23,7 @@ extern "C" {
 
 /* Configure scheduling policy by setting this define to the appropriate one. */
 // #define schedSCHEDULING_POLICY schedSCHEDULING_POLICY_DMS 
-#define schedSCHEDULING_POLICY schedSCHEDULING_POLICY_DMS
+#define schedSCHEDULING_POLICY schedSCHEDULING_POLICY_RMS
 
 /* Maximum number of periodic tasks that can be created. (Scheduler task is
  * not included) */
