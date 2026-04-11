@@ -51,10 +51,8 @@ extern "C" {
 	#define schedSCHEDULER_PRIORITY ( configMAX_PRIORITIES - 1 )
 	/* Stack size of the scheduler task. */
 	#define schedSCHEDULER_TASK_STACK_SIZE ( 200 )
-	/* The period of the scheduler task in software ticks. Keep this at least one
-	 * tick wide because small pdMS_TO_TICKS() values can round down to zero on
-	 * Arduino_FreeRTOS AVR ports. */
-	#define schedSCHEDULER_TASK_PERIOD pdMS_TO_TICKS( 100 )		
+	/* The period of the scheduler task in software ticks. */
+	#define schedSCHEDULER_TASK_PERIOD 1
 #endif /* schedUSE_SCHEDULER_TASK */
 
 /* This function must be called before any other function call from scheduler.h. */

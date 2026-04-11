@@ -207,10 +207,10 @@ static void prvPeriodicTaskCode( void *pvParameters ){
 		pxThisTask->xExecTime = 0;
 		pxThisTask->xWorkIsDone = pdTRUE;
 
-		// Serial.print("[DONE] Task '");
-		// Serial.print(pxThisTask->pcName);
-		// Serial.print("' finished at tick ");
-		// Serial.println(xTaskGetTickCount());
+		Serial.print("[DONE] Task '");
+		Serial.print(pxThisTask->pcName);
+		Serial.print("' finished at tick ");
+		Serial.println(xTaskGetTickCount());
 		// Serial.println("--------------------------------------------------");
 
 		xTaskDelayUntil( &pxThisTask->xLastWakeTime, pxThisTask->xPeriod );
@@ -430,12 +430,12 @@ static void prvSetFixedPriorities( void )
 	{
 		/* Delete the pxTask and recreate it. */
 		/* pxTaskHandle stores a pointer to the handle, so dereference it here. */
-		// Serial.print("[DEADLINE MISS] Deleting task '");
-		// Serial.print(pxTCB->pcName);
-		// Serial.print("' at tick ");
-		// Serial.print(xTickCount);
-		// Serial.print(" | absDeadline was ");
-		// Serial.println(pxTCB->xAbsoluteDeadline);
+		Serial.print("[DEADLINE MISS] Deleting task '");
+		Serial.print(pxTCB->pcName);
+		Serial.print("' at tick ");
+		Serial.print(xTickCount);
+		Serial.print(" | absDeadline was ");
+		Serial.println(pxTCB->xAbsoluteDeadline);
 		vTaskDelete( *pxTCB->pxTaskHandle /* Line 328 your implementation goes here */ );
 
 		/* Need to reset next WakeTime for correct release. */
@@ -464,15 +464,24 @@ static void prvSetFixedPriorities( void )
 	{ 
 		/* check whether deadline is missed. */     		
 		/* Line 341 your implementation goes here */
-		// if the task was executed once, if the work hasn't been done yet and if the tickcount is greater than or equal to the absolute deadline of the task
-		if( pdTRUE == pxTCB->xExecutedOnce && pdFALSE == pxTCB->xWorkIsDone && ( int16_t )( xTickCount - pxTCB->xAbsoluteDeadline ) >= 0)
+		/* A completed job can be waiting for its next release. Once that release
+		 * time has passed, mark the new job active so it can miss its deadline
+		 * even if it never gets CPU time. */
+		if( pdTRUE == pxTCB->xWorkIsDone && ( int16_t )( xTickCount - pxTCB->xLastWakeTime ) >= 0 )
 		{
-			// Serial.print("[CHECK] MISSED -> task '");
-			// Serial.print(pxTCB->pcName);
-			// Serial.print("' tick=");
-			// Serial.print(xTickCount);
-			// Serial.print(" deadline=");
-			// Serial.println(pxTCB->xAbsoluteDeadline);
+			pxTCB->xAbsoluteDeadline = pxTCB->xLastWakeTime + pxTCB->xRelativeDeadline;
+			pxTCB->xExecutedOnce = pdFALSE;
+			pxTCB->xWorkIsDone = pdFALSE;
+		}
+
+		if( pdFALSE == pxTCB->xWorkIsDone && ( int16_t )( xTickCount - pxTCB->xAbsoluteDeadline ) >= 0)
+		{
+			Serial.print("[CHECK] MISSED -> task '");
+			Serial.print(pxTCB->pcName);
+			Serial.print("' tick=");
+			Serial.print(xTickCount);
+			Serial.print(" deadline=");
+			Serial.println(pxTCB->xAbsoluteDeadline);
 			prvDeadlineMissedHook( pxTCB, xTickCount );
 		}
 			
@@ -520,10 +529,7 @@ static void prvSetFixedPriorities( void )
 		#if( schedUSE_TIMING_ERROR_DETECTION_DEADLINE == 1 )						
 			/* check if task missed deadline */
             /* Line 378 your implementation goes here */
-			if( pdTRUE == pxTCB->xExecutedOnce )
-			{
-				prvCheckDeadline( pxTCB, xTickCount );
-			}
+			prvCheckDeadline( pxTCB, xTickCount );
 					
 		#endif /* schedUSE_TIMING_ERROR_DETECTION_DEADLINE */
 		
@@ -646,7 +652,7 @@ static void prvSetFixedPriorities( void )
 			pxCurrentTask->xExecTime++;     
      
 			#if( schedUSE_TIMING_ERROR_DETECTION_EXECUTION_TIME == 1 )
-            if( pxCurrentTask->xMaxExecTime <= pxCurrentTask->xExecTime )
+            if( pxCurrentTask->xMaxExecTime < pxCurrentTask->xExecTime )
             {
                 if( pdFALSE == pxCurrentTask->xMaxExecTimeExceeded )
                 {

@@ -36,11 +36,11 @@ static void testFunc4( void *pvParameters )
 }
 
 /* Simulate workload by burning CPU cycles in proportion to the task's
- * configured WCET ticks. Tune the multiplier for your board if needed. */
+ * configured WCET ticks. */
 static void doConfiguredWorkTicks(void)
 {
     uint32_t targetTicks = ulSchedulerGetCurrentTaskWCETTicks();
-    const uint32_t iterationsPerTick = 10000UL;
+    const uint32_t iterationsPerTick = 9000UL;
     volatile uint32_t sink = 0;
     uint32_t i;
 
@@ -99,19 +99,19 @@ void setup()
 
 
 	// Task set 1
-	vSchedulerPeriodicTaskCreate(testFunc1, "t1", configMINIMAL_STACK_SIZE, &c1, 1, &xHandle1, pdMS_TO_TICKS(0), pdMS_TO_TICKS(400),  pdMS_TO_TICKS(100), pdMS_TO_TICKS(400));
-	vSchedulerPeriodicTaskCreate(testFunc2, "t2", configMINIMAL_STACK_SIZE, &c2, 2, &xHandle2, pdMS_TO_TICKS(0), pdMS_TO_TICKS(800),  pdMS_TO_TICKS(200), pdMS_TO_TICKS(700));
-	vSchedulerPeriodicTaskCreate(testFunc3, "t3", configMINIMAL_STACK_SIZE, &c3, 3, &xHandle3, pdMS_TO_TICKS(0), pdMS_TO_TICKS(1000), pdMS_TO_TICKS(150), pdMS_TO_TICKS(1000));
-	vSchedulerPeriodicTaskCreate(testFunc4, "t4", configMINIMAL_STACK_SIZE, &c4, 4, &xHandle4, pdMS_TO_TICKS(0), pdMS_TO_TICKS(5000), pdMS_TO_TICKS(300), pdMS_TO_TICKS(5000));
+	// vSchedulerPeriodicTaskCreate(testFunc1, "t1", configMINIMAL_STACK_SIZE, &c1, 1, &xHandle1, pdMS_TO_TICKS(0), pdMS_TO_TICKS(400),  pdMS_TO_TICKS(100), pdMS_TO_TICKS(400));
+	// vSchedulerPeriodicTaskCreate(testFunc2, "t2", configMINIMAL_STACK_SIZE, &c2, 2, &xHandle2, pdMS_TO_TICKS(0), pdMS_TO_TICKS(800),  pdMS_TO_TICKS(200), pdMS_TO_TICKS(700));
+	// vSchedulerPeriodicTaskCreate(testFunc3, "t3", configMINIMAL_STACK_SIZE, &c3, 3, &xHandle3, pdMS_TO_TICKS(0), pdMS_TO_TICKS(1000), pdMS_TO_TICKS(150), pdMS_TO_TICKS(1000));
+	// vSchedulerPeriodicTaskCreate(testFunc4, "t4", configMINIMAL_STACK_SIZE, &c4, 4, &xHandle4, pdMS_TO_TICKS(0), pdMS_TO_TICKS(5000), pdMS_TO_TICKS(300), pdMS_TO_TICKS(5000));
 
 	// Serial.println("configUSE_TICK_HOOK");
 	// Serial.println(configUSE_TICK_HOOK );
 
 	// Task set 2
-	// vSchedulerPeriodicTaskCreate(testFunc1, "t1", configMINIMAL_STACK_SIZE, &c1, 1, &xHandle1, pdMS_TO_TICKS(0), pdMS_TO_TICKS(400),  pdMS_TO_TICKS(100), pdMS_TO_TICKS(400));
-	// vSchedulerPeriodicTaskCreate(testFunc2, "t2", configMINIMAL_STACK_SIZE, &c2, 2, &xHandle2, pdMS_TO_TICKS(0), pdMS_TO_TICKS(500),  pdMS_TO_TICKS(150), pdMS_TO_TICKS(200));
-	// vSchedulerPeriodicTaskCreate(testFunc3, "t3", configMINIMAL_STACK_SIZE, &c3, 3, &xHandle3, pdMS_TO_TICKS(0), pdMS_TO_TICKS(800),  pdMS_TO_TICKS(200), pdMS_TO_TICKS(700));
-	// vSchedulerPeriodicTaskCreate(testFunc4, "t4", configMINIMAL_STACK_SIZE, &c4, 4, &xHandle4, pdMS_TO_TICKS(0), pdMS_TO_TICKS(1000), pdMS_TO_TICKS(150), pdMS_TO_TICKS(1000));
+	vSchedulerPeriodicTaskCreate(testFunc1, "t1", configMINIMAL_STACK_SIZE, &c1, 1, &xHandle1, pdMS_TO_TICKS(0), pdMS_TO_TICKS(400),  pdMS_TO_TICKS(100), pdMS_TO_TICKS(400));
+	vSchedulerPeriodicTaskCreate(testFunc2, "t2", configMINIMAL_STACK_SIZE, &c2, 2, &xHandle2, pdMS_TO_TICKS(0), pdMS_TO_TICKS(500),  pdMS_TO_TICKS(150), pdMS_TO_TICKS(200));
+	vSchedulerPeriodicTaskCreate(testFunc3, "t3", configMINIMAL_STACK_SIZE, &c3, 3, &xHandle3, pdMS_TO_TICKS(0), pdMS_TO_TICKS(800),  pdMS_TO_TICKS(200), pdMS_TO_TICKS(700));
+	vSchedulerPeriodicTaskCreate(testFunc4, "t4", configMINIMAL_STACK_SIZE, &c4, 4, &xHandle4, pdMS_TO_TICKS(0), pdMS_TO_TICKS(1000), pdMS_TO_TICKS(150), pdMS_TO_TICKS(1000));
 
 	vSchedulerStart();
 
